@@ -104,7 +104,7 @@ services:
         type: pserv
         envVarKey: MEMCACHED_PASSWORD
     - key: SECRETS_postgres_password
-      fromService:
+      fromDatabase:
         name: zulip-postgresql
         property: password
     - key: SECRETS_rabbitmq_password
