@@ -1,60 +1,39 @@
+databases:
+- name: zulip-postgresql
+  databaseName: zulip
+  user: zulip
+  ipAllowList: []
+
 services:
-- type: pserv
+- type: redis
   name: zulip-redis
-  env: docker
-  dockerfilePath: ./redis/Dockerfile
-  dockerContext: ./redis
-  autoDeploy: false
-  envVars:
-    - key: REDIS_PASSWORD
-      generateValue: true    
-  disk:
-    name: redis-persistent-storage
-    mountPath: /data
-    sizeGB: 10
+  ipAllowList: []
+
 - type: pserv
   name: zulip-memcached
   env: docker
   dockerfilePath: ./memcached/Dockerfile
   autoDeploy: false
   envVars:
-    - key: SASL_CONF_PATH
-      value: /home/memcache/memcached.conf
-    - key: MEMCACHED_SASL_PWDB
-      value: /home/memcache/memcached-sasl-db
     - key: MEMCACHED_PASSWORD
       generateValue: true
+
 - type: pserv
+  plan: starter
   name: zulip-rabbitmq
-  env: docker
-  repo: https://github.com/render-examples/rabbitmq.git
+  runtime: image
+  image:
+    url: rabbitmq:3-management
   autoDeploy: false
   envVars:
-    - key: RABBITMQ_ERLANG_COOKIE
-      generateValue: true
-    - key: RABBITMQ_DEFAULT_USER
-      value: zulip # Must be set to zulip
-    - key: RABBITMQ_DEFAULT_PASS
-      generateValue: true
+  - key: RABBITMQ_DEFAULT_USER
+    value: "zulip"
+  - key: RABBITMQ_DEFAULT_PASS
+    generateValue: True
   disk:
-    name: rabbitmq
-    mountPath: /var/lib/rabbitmq
-    sizeGB: 10
-- type: pserv
-  name: zulip-postgresql
-  env: docker
-  dockerfilePath: ./postgresql/Dockerfile
-  autoDeploy: false
-  envVars:
-    - key: POSTGRES_DB
-      value: zulip # Must be set to zulip
-    - key: POSTGRES_USER
-      value: zulip # Must be set to zulip
-    - key: POSTGRES_PASSWORD
-      generateValue: true
-  disk:
-    name: postgresql-persistent-storage
-    mountPath: /var/lib/postgresql/data
+    name: zulip-rabbitmq
+    mountPath: /var/lib/rabbitmq/mnesia
+
 - type: web
   name: zulip
   env: docker
@@ -88,20 +67,17 @@ services:
     - key: SECRETS_secret_key
       generateValue: true
     - key: DB_HOST
-      fromService:
+      fromDatabase:
         name: zulip-postgresql
-        type: pserv
         property: host
     - key: DB_HOST_PORT
-      fromService:
+      fromDatabase:
         name: zulip-postgresql
-        type: pserv
         property: port
     - key: DB_USER
-      fromService:
+      fromDatabase:
         name: zulip-postgresql
-        type: pserv
-        envVarKey: POSTGRES_USER
+        property: user
     - key: SETTING_MEMCACHED_LOCATION
       fromService:
         name: zulip-memcached
@@ -130,18 +106,17 @@ services:
     - key: SECRETS_postgres_password
       fromService:
         name: zulip-postgresql
-        type: pserv
-        envVarKey: POSTGRES_PASSWORD
+        property: password
     - key: SECRETS_rabbitmq_password
       fromService:
         name: zulip-rabbitmq
         type: pserv
         envVarKey: RABBITMQ_DEFAULT_PASS
-    - key: SECRETS_redis_password
-      fromService:
-        name: zulip-redis
-        type: pserv
-        envVarKey: REDIS_PASSWORD
+    # - key: SECRETS_redis_password
+    #   fromService:
+    #     name: zulip-redis
+    #     type: pserv
+    #     envVarKey: REDIS_PASSWORD
     - key: DISABLE_HTTPS
       value: True # Do not edit! Render gives you SSL automatically. This removes https-related config
     - key: PORT
