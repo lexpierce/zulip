@@ -86,12 +86,12 @@ services:
     - key: SETTING_REDIS_HOST
       fromService:
         name: zulip-redis
-        type: pserv
+        type: redis
         property: host
     - key: REDIS_PORT
       fromService:
         name: zulip-redis
-        type: pserv
+        type: redis
         property: port
     - key: SETTING_RABBITMQ_HOST
       fromService:
